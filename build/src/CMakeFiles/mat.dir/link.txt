@@ -1,2 +1,0 @@
-/usr/bin/ar qc libmat.a CMakeFiles/mat.dir/mat.hip.o
-/usr/bin/ranlib libmat.a

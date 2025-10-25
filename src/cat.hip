@@ -1,7 +1,6 @@
 #include "cat.h"
 #include <__clang_hip_runtime_wrapper.h>
 #include <assert.h>
-#include <cmath>
 #include <cstddef>
 #include <cstdio>
 #include <hip/amd_detail/amd_hip_vector_types.h>

@@ -1,1 +1,0 @@
-/opt/rocm-7.0.1/bin/hipcc_cmake_linker_helper /opt/rocm/llvm/bin   --offload-arch=gfx1201 CMakeFiles/main.dir/main.cpp.o -o ../bin/main  libcat.a -lGL -lSDL2 /opt/rocm-7.0.1/lib/libamdhip64.so.7.0.70001 -lgcc -lgcc 

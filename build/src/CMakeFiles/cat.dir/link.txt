@@ -1,2 +1,0 @@
-/usr/bin/ar qc libcat.a CMakeFiles/cat.dir/cat.hip.o
-/usr/bin/ranlib libcat.a
