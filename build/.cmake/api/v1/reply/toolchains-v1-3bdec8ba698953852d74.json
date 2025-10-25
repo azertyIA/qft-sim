@@ -1,0 +1,120 @@
+{
+	"kind" : "toolchains",
+	"toolchains" : 
+	[
+		{
+			"compiler" : 
+			{
+				"id" : "GNU",
+				"implicit" : 
+				{
+					"includeDirectories" : 
+					[
+						"/opt/rocm-7.0.1/include",
+						"/usr/include/c++/13",
+						"/usr/include/x86_64-linux-gnu/c++/13",
+						"/usr/include/c++/13/backward",
+						"/usr/lib/gcc/x86_64-linux-gnu/13/include",
+						"/usr/local/include",
+						"/usr/include/x86_64-linux-gnu",
+						"/usr/include"
+					],
+					"linkDirectories" : 
+					[
+						"/usr/lib/gcc/x86_64-linux-gnu/13",
+						"/usr/lib/x86_64-linux-gnu",
+						"/usr/lib",
+						"/lib/x86_64-linux-gnu",
+						"/lib"
+					],
+					"linkFrameworkDirectories" : [],
+					"linkLibraries" : 
+					[
+						"stdc++",
+						"m",
+						"gcc_s",
+						"gcc",
+						"c",
+						"gcc_s",
+						"gcc"
+					]
+				},
+				"path" : "/usr/bin/c++",
+				"version" : "13.3.0"
+			},
+			"language" : "CXX",
+			"sourceFileExtensions" : 
+			[
+				"C",
+				"M",
+				"c++",
+				"cc",
+				"cpp",
+				"cxx",
+				"m",
+				"mm",
+				"mpp",
+				"CPP",
+				"ixx",
+				"cppm",
+				"ccm",
+				"cxxm",
+				"c++m"
+			]
+		},
+		{
+			"compiler" : 
+			{
+				"id" : "Clang",
+				"implicit" : 
+				{
+					"includeDirectories" : 
+					[
+						"/opt/rocm-7.0.1/include",
+						"/opt/rocm-7.0.1/lib/llvm/lib/clang/20/include/cuda_wrappers",
+						"/usr/include/c++/13",
+						"/usr/include/x86_64-linux-gnu/c++/13",
+						"/usr/include/c++/13/backward",
+						"/opt/rocm-7.0.1/lib/llvm/lib/clang/20/include",
+						"/usr/local/include",
+						"/usr/include/x86_64-linux-gnu",
+						"/usr/include"
+					],
+					"linkDirectories" : 
+					[
+						"/usr/lib/gcc/x86_64-linux-gnu/13",
+						"/usr/lib64",
+						"/lib/x86_64-linux-gnu",
+						"/lib64",
+						"/usr/lib/x86_64-linux-gnu",
+						"/lib",
+						"/usr/lib",
+						"/opt/rocm-7.0.1/lib"
+					],
+					"linkFrameworkDirectories" : [],
+					"linkLibraries" : 
+					[
+						"amdhip64",
+						"stdc++",
+						"m",
+						"gcc_s",
+						"c",
+						"gcc_s"
+					]
+				},
+				"path" : "/opt/rocm-7.0.1/lib/llvm/bin/clang++",
+				"version" : "20.0.0"
+			},
+			"language" : "HIP",
+			"sourceFileExtensions" : 
+			[
+				"hip"
+			]
+		}
+	],
+	"version" : 
+	{
+		"major" : 1,
+		"minor" : 0
+	}
+}

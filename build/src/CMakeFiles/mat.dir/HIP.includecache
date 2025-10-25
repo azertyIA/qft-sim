@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/ducks/Projects/hiphip/src/include/mat.h
+hip/hip_runtime.h
+-
+stddef.h
+-
+
+/home/ducks/Projects/hiphip/src/mat.hip
+mat.h
+/home/ducks/Projects/hiphip/src/mat.h
+assert.h
+-
+cstddef
+-
+cstdio
+-
+stdlib.h
+-
+

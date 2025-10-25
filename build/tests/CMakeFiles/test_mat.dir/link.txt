@@ -1,0 +1,1 @@
+/opt/rocm-7.0.1/bin/hipcc_cmake_linker_helper /opt/rocm/llvm/bin   --offload-arch=gfx1201 --offload-arch=gfx1036 CMakeFiles/test_mat.dir/test_mat.cpp.o -o ../bin/test_mat  ../src/libmat.a /opt/rocm-7.0.1/lib/libamdhip64.so.7.0.70001 -lgcc -lgcc 

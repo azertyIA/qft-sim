@@ -1,0 +1,32 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/ducks/Projects/hiphip/src/cat.hip
+cat.h
+/home/ducks/Projects/hiphip/src/cat.h
+__clang_hip_runtime_wrapper.h
+-
+assert.h
+-
+cmath
+-
+cstddef
+-
+cstdio
+-
+hip/amd_detail/amd_hip_vector_types.h
+-
+stdlib.h
+-
+
+/home/ducks/Projects/hiphip/src/include/cat.h
+hip/hip_runtime.h
+-
+stddef.h
+-
+

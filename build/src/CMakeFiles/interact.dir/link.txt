@@ -1,0 +1,1 @@
+/opt/rocm-7.0.1/bin/hipcc_cmake_linker_helper /opt/rocm/llvm/bin   --offload-arch=gfx1201 CMakeFiles/interact.dir/interact.cpp.o -o ../bin/interact  libmat.a -lGL -lSDL2 /opt/rocm-7.0.1/lib/libamdhip64.so.7.0.70001 -lgcc -lgcc 

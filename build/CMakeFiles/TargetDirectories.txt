@@ -1,0 +1,15 @@
+/home/ducks/Projects/hiphip/build/CMakeFiles/test.dir
+/home/ducks/Projects/hiphip/build/CMakeFiles/edit_cache.dir
+/home/ducks/Projects/hiphip/build/CMakeFiles/rebuild_cache.dir
+/home/ducks/Projects/hiphip/build/src/CMakeFiles/mat.dir
+/home/ducks/Projects/hiphip/build/src/CMakeFiles/cat.dir
+/home/ducks/Projects/hiphip/build/src/CMakeFiles/interact.dir
+/home/ducks/Projects/hiphip/build/src/CMakeFiles/main.dir
+/home/ducks/Projects/hiphip/build/src/CMakeFiles/test.dir
+/home/ducks/Projects/hiphip/build/src/CMakeFiles/edit_cache.dir
+/home/ducks/Projects/hiphip/build/src/CMakeFiles/rebuild_cache.dir
+/home/ducks/Projects/hiphip/build/tests/CMakeFiles/test_mat.dir
+/home/ducks/Projects/hiphip/build/tests/CMakeFiles/test_cat.dir
+/home/ducks/Projects/hiphip/build/tests/CMakeFiles/test.dir
+/home/ducks/Projects/hiphip/build/tests/CMakeFiles/edit_cache.dir
+/home/ducks/Projects/hiphip/build/tests/CMakeFiles/rebuild_cache.dir

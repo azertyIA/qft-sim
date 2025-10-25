@@ -1,0 +1,40 @@
+Start testing: Oct 12 15:24 EDT
+----------------------------------------------------------
+1/2 Testing: MatrixTests
+1/2 Test: MatrixTests
+Command: "/home/ducks/Projects/hiphip/build/bin/test_mat"
+Directory: /home/ducks/Projects/hiphip/build/tests
+"MatrixTests" start time: Oct 12 15:24 EDT
+Output:
+----------------------------------------------------------
+[matrix_fill] PASS: 1.58 ms
+[matrix_add] PASS: 0.85 ms
+[matrix_mult] PASS: 37.18 ms
+<end of output>
+Test time =   0.17 sec
+----------------------------------------------------------
+Test Passed.
+"MatrixTests" end time: Oct 12 15:24 EDT
+"MatrixTests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/2 Testing: CatrixTests
+2/2 Test: CatrixTests
+Command: "/home/ducks/Projects/hiphip/build/bin/test_cat"
+Directory: /home/ducks/Projects/hiphip/build/tests
+"CatrixTests" start time: Oct 12 15:24 EDT
+Output:
+----------------------------------------------------------
+[catrix_add] PASS: 63.57 ms
+[catrix_scale] PASS: 60.19 ms
+[catrix_lap] PASS: 78.19 ms
+[catrix_naive] PASS: 119.65 ms
+<end of output>
+Test time =   0.44 sec
+----------------------------------------------------------
+Test Passed.
+"CatrixTests" end time: Oct 12 15:24 EDT
+"CatrixTests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 12 15:24 EDT
