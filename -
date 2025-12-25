@@ -11,7 +11,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <hip/amd_detail/amd_hip_vector_types.h>
-#include <pthread.h>
 #include <string>
 
 #define COLOR
@@ -23,22 +22,15 @@ const float dV = 1.0f;
 
 void init_window(Catrix H, SDL_Window *window, SDL_GLContext *glctx,
                  GLuint *tex);
-void *write_frame(void *ARGS);
+void write_frame(Catrix h, GLuint tex, SDL_Window *window);
 void cat_pulse(Catrix A, const float mx, const float my, const float2 k);
-
-typedef struct {
-  Catrix h;
-  GLuint tex;
-  SDL_Window *window;
-} FrameData;
 
 Catrix init_perturbation(Catrix h) {
   Catrix V0 = cat_adapt(h);
 
   for (int row = 0; row < h.rows; row++)
     for (int col = 0; col < h.cols; col++)
-      CAT_AT(h, row, col) =
-          make_float2((float)((3 * col / h.cols) % 2 == 1 ? 0.5f : 0), 0);
+      CAT_AT(h, row, col) = q * dV * make_float2((float)col / h.cols, 0);
 
   cat_to_device(V0, h);
   return V0;
@@ -58,8 +50,8 @@ void on_click(Catrix h, Catrix T, Catrix U, int x0, int y0, int x, int y) {
 int main(int argc, char *argv[]) {
   const int cols = std::stoi(argv[1]);
   const int rows = std::stoi(argv[2]);
-  const int MAX_STEP = std::stoi(argv[3]);
-  const float DELTA_TIME = std::stof(argv[4]);
+  const int St = std::stoi(argv[3]);
+  const float dt = std::stof(argv[4]);
 
   // host matrix for reading / writing
   Catrix H = cat_alloc_host(rows, cols);
@@ -100,29 +92,17 @@ int main(int argc, char *argv[]) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-  pthread_t th_v;
-  FrameData *frame_data = (FrameData *)malloc(sizeof(FrameData));
-  frame_data->tex = tex;
-  frame_data->window = window;
+  for (int i = 0; running; i++) {
+    // cat_norm(V, U1, -q);
+    // cat_add(V, V, V0);
+    cat_step(U2, U0, U1, V, dt);
+    float2 *tmp = U0.data;
+    U0.data = U1.data;
+    U1.data = U2.data;
+    U2.data = tmp;
 
-  while (running) {
-    cat_to_host(H, U1);
-    frame_data->h = H;
-
-    write_frame(frame_data);
-    // pthread_create(&th_v, NULL, write_frame, (void *)frame_data);
-
-    for (int i = 0; i < MAX_STEP; i++) {
-      // cat_norm(V, U1, -q);
-      // cat_add(V, V, V0);
-      cat_step(U2, U0, U1, V0, DELTA_TIME);
-      float2 *tmp = U0.data;
-      U0.data = U1.data;
-      U1.data = U2.data;
-      U2.data = tmp;
-    }
-
-    // pthread_join(th_v, NULL);
+    if (i % St != 0)
+      continue;
 
     while (SDL_PollEvent(&e)) {
       if (e.type == SDL_QUIT)
@@ -137,6 +117,9 @@ int main(int argc, char *argv[]) {
         continue;
       on_click(H, U0, U1, x0, y0, x1, y1);
     }
+
+    cat_to_host(H, U1);
+    write_frame(H, tex, window);
 
 #ifdef READ_V
     SDL_GetMouseState(&vx, &vy);
@@ -153,7 +136,6 @@ int main(int argc, char *argv[]) {
   cat_free_device(U2);
   cat_free_device(V0);
   cat_free_device(V);
-  // free(frame_data);
 
   SDL_GL_DeleteContext(glctx);
   SDL_DestroyWindow(window);
@@ -237,19 +219,17 @@ void cat_pulse(Catrix A, const float mx, const float my, const float2 k) {
   }
 }
 
-void *write_frame(void *ARGS) {
-  FrameData *args = (FrameData *)ARGS;
-  Catrix h = args->h;
+void write_frame(Catrix h, GLuint tex, SDL_Window *window) {
   float maxval = 0.5f;
 
   unsigned char img[h.rows * h.cols * 3];
   cat_rgb(img, h, maxval);
-  glBindTexture(GL_TEXTURE_2D, args->tex);
+  glBindTexture(GL_TEXTURE_2D, tex);
   glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, h.cols, h.rows, GL_RGB,
                   GL_UNSIGNED_BYTE, img);
   glClear(GL_COLOR_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, args->tex);
+  glBindTexture(GL_TEXTURE_2D, tex);
   glBegin(GL_QUADS);
   glTexCoord2f(0, 0);
   glVertex2f(-1, -1);
@@ -260,8 +240,5 @@ void *write_frame(void *ARGS) {
   glTexCoord2f(0, 1);
   glVertex2f(-1, 1);
   glEnd();
-  SDL_GL_SwapWindow(args->window);
-
-  // free(args);
-  return NULL;
+  SDL_GL_SwapWindow(window);
 }
