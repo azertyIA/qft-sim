@@ -6,10 +6,10 @@
 #define DIM 5000
 
 bool test_catrix_add() {
-  Catrix A = cat_alloc_host(DIM, DIM);
-  Catrix dA = cat_adapt(A);
-  Catrix dB = cat_adapt(A);
-  Catrix dC = cat_adapt(A);
+  SField A = cat_alloc_host(DIM, DIM);
+  SField dA = cat_adapt(A);
+  SField dB = cat_adapt(A);
+  SField dC = cat_adapt(A);
 
   cat_fill(dA, 1);
   cat_fill(dB, 2);
@@ -29,9 +29,9 @@ bool test_catrix_add() {
 }
 
 bool test_catrix_scale() {
-  Catrix A = cat_alloc_host(DIM, DIM);
-  Catrix dA = cat_adapt(A);
-  Catrix dC = cat_adapt(A);
+  SField A = cat_alloc_host(DIM, DIM);
+  SField dA = cat_adapt(A);
+  SField dC = cat_adapt(A);
 
   cat_fill(dA, 1);
 
@@ -49,9 +49,9 @@ bool test_catrix_scale() {
 }
 
 bool test_catrix_lap() {
-  Catrix A = cat_alloc_host(DIM, DIM);
-  Catrix dA = cat_adapt(A);
-  Catrix dC = cat_adapt(A);
+  SField A = cat_alloc_host(DIM, DIM);
+  SField dA = cat_adapt(A);
+  SField dC = cat_adapt(A);
 
   CAT_AT(A, 1, 1) = make_float2(1, 0);
 
@@ -68,10 +68,10 @@ bool test_catrix_lap() {
 }
 
 bool test_catrix_naive() {
-  Catrix A = cat_alloc_host(DIM, DIM);
-  Catrix dA = cat_adapt(A);
-  Catrix dB = cat_adapt(A);
-  Catrix dC = cat_adapt(A);
+  SField A = cat_alloc_host(DIM, DIM);
+  SField dA = cat_adapt(A);
+  SField dB = cat_adapt(A);
+  SField dC = cat_adapt(A);
 
   CAT_AT(A, 1, 1) = make_float2(1, 0);
   float2 idt = make_float2(0, 0.01);
