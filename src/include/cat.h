@@ -41,12 +41,9 @@ void s_norm(SField dst, const SField a, const float c);
 void s_block(SField dst, const float2 v, const int2 x, const int2 y);
 
 void s_add(SField dst, const SField a, const SField b);
-void s_augment(SField dst, const SField a, const SField b, const float2 c);
-void s_hdot(SField dst, const SField a, const SField b);
+void s_scale_add(SField dst, const SField a, const SField b, const float2 c);
 
 void s_lap(SField dst, const SField u);
-void s_step(SField next, const SField t, const SField u, const SField v,
-            const float dt);
 void s_filter(SField m);
 
 void s_grad(VField dst, const SField a);

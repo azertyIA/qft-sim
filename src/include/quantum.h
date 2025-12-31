@@ -8,7 +8,7 @@ typedef struct {
 typedef struct {
   float2 AV_FACTOR, V2_FACTOR, H_FACTOR;
   SField prev, curr, next;
-  VField A, VU;
+  VField A;
   SField O, A2, VA, AVU, V2U;
   SField H, HU;
   float2 *tmp;
@@ -19,6 +19,6 @@ void qg_dump(SField dump, QuantumGauge gauge);
 void qg_load(QuantumGauge gauge, SField host);
 void qg_free(QuantumGauge gauge);
 
-void qg_init(QuantumGauge gauge, const QuantumGaugeParams params);
-void qg_step_first_order(QuantumGauge gauge);
-void qg_step_second_order(QuantumGauge gauge);
+void qg_init(QuantumGauge &gauge, const QuantumGaugeParams params, SField host);
+void qg_step_second_order(QuantumGauge &gauge);
+void qg_step_wave(QuantumGauge &gauge);
