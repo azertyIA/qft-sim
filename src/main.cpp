@@ -50,19 +50,19 @@ float2 playground(float x, float y) {
 }
 
 SField init_scalar_potential(SField h) {
-  SField O = cat_adapt(h);
-  cat_host_fill(h, init_o);
-  cat_to_device(O, h);
+  SField O = s_adapt(h);
+  s_host_fill(h, init_o);
+  s_to_device(O, h);
   return O;
 }
 
 VField init_vector_potential(SField h) {
-  SField X = cat_adapt(h);
-  cat_host_fill(h, init_ax);
-  cat_to_device(X, h);
-  SField Y = cat_adapt(h);
-  cat_host_fill(h, init_ay);
-  cat_to_device(Y, h);
+  SField X = s_adapt(h);
+  s_host_fill(h, init_ax);
+  s_to_device(X, h);
+  SField Y = s_adapt(h);
+  s_host_fill(h, init_ay);
+  s_to_device(Y, h);
   return {X, Y};
 }
 
@@ -71,13 +71,13 @@ void on_click(SField h, SField T, SField U, int x0, int y0, int x, int y) {
   int dx = x - x0;
   float n = sqrt(dy * dy + dx * dx);
 
-  cat_to_host(h, U);
+  s_to_host(h, U);
   // cat_pulse(h, x, y, 2.0f * make_float2(dx, dy) / n);
   // cat_pulse(h, 40, 25, make_float2(2.0f, 0));
   // cat_pulse(h, 150, 25, make_float2(-2.0f, 0));
   cat_pulse(h, 260, 25, make_float2(-2.0f, 0));
-  cat_to_device(U, h);
-  cat_to_device(T, h);
+  s_to_device(U, h);
+  s_to_device(T, h);
 }
 
 int main(int argc, char *argv[]) {
@@ -87,25 +87,7 @@ int main(int argc, char *argv[]) {
   const float DELTA_TIME = std::stof(argv[4]);
 
   // host matrix for reading / writing
-  SField h = cat_alloc_host(rows, cols);
-
-  // potiential matrices
-  VField A = init_vector_potential(h);
-  cat_scale(A.x, A.x, Q);
-  cat_scale(A.y, A.y, Q);
-  cat_preview(A.x);
-  SField O = init_scalar_potential(h);
-  cat_scale(O, O, Q);
-
-  // buffer matrices
-  SField U0 = cat_adapt(h);
-  SField U1 = cat_adapt(h);
-  SField U2 = cat_adapt(h);
-
-  // initialization
-  cat_fill(U0, 0);
-  cat_fill(U1, 0);
-  cat_fill(U2, 0);
+  SField h = s_alloc_host(rows, cols);
 
   // user events
   bool running = true;
@@ -132,53 +114,71 @@ int main(int argc, char *argv[]) {
   frame_data->tex = tex;
   frame_data->window = window;
 
-  SField A2 = cat_adapt(h);
-  cfd_dot(A2, A, A);
-  cat_scale(A2, A2, 0.5f / M);
+  // potiential matrices
+  VField A = init_vector_potential(h);
+  s_scale(A.x, A.x, Q);
+  s_scale(A.y, A.y, Q);
+  s_preview(A.x);
+  SField O = init_scalar_potential(h);
+  s_scale(O, O, Q);
 
-  SField VA = cat_adapt(h);
-  cfd_div(VA, A);
-  cat_scale(VA, VA, make_float2(0, 0.5f * H_BAR / M));
+  // buffer matrices
+  SField U0 = s_adapt(h);
+  SField U1 = s_adapt(h);
+  SField U2 = s_adapt(h);
 
-  VField VU = {cat_adapt(h), cat_adapt(h)};
-  SField AVU = cat_adapt(h);
+  // initialization
+  s_fill(U0, 0);
+  s_fill(U1, 0);
+  s_fill(U2, 0);
+
+  SField A2 = s_adapt(h);
+  f_dot(A2, A, A);
+  s_scale(A2, A2, 0.5f / M);
+
+  SField VA = s_adapt(h);
+  f_div(VA, A);
+  s_scale(VA, VA, make_float2(0, 0.5f * H_BAR / M));
+
+  VField VU = {s_adapt(h), s_adapt(h)};
+  SField AVU = s_adapt(h);
   float2 AV_FACTOR = make_float2(0, -H_BAR / M);
 
-  SField V2U = cat_adapt(h);
+  SField V2U = s_adapt(h);
   float2 V2_FACTOR = make_float2(-0.5f * H_BAR * H_BAR / M, 0);
 
-  SField H = cat_adapt(h);
-  SField HU = cat_adapt(h);
+  SField H = s_adapt(h);
+  SField HU = s_adapt(h);
   float2 H_FACTOR = make_float2(0, -2 * DELTA_TIME / H_BAR);
   float2 *tmp;
 
   while (running) {
-    cat_to_host(h, U1);
+    s_to_host(h, U1);
     frame_data->h = h;
 
     write_frame(frame_data);
 
     for (int i = 0; i < MAX_STEP; i++) {
       // HU += [(ihV.(qA) + (qA)2)/2m + O]U
-      cat_add(H, O, A2);
-      cat_add(H, H, VA);
-      cat_mult(HU, H, U1);
+      s_add(H, O, A2);
+      s_add(H, H, VA);
+      s_mult(HU, H, U1);
 
       // HU += -ih(qA).VU/m
-      cat_grad(VU, U1);
-      cfd_dot(AVU, A, VU);
-      cat_scale(AVU, AVU, AV_FACTOR);
-      cat_add(HU, HU, AVU);
+      s_grad(VU, U1);
+      f_dot(AVU, A, VU);
+      s_scale(AVU, AVU, AV_FACTOR);
+      s_add(HU, HU, AVU);
 
       // HU += -h2V2U/2m
-      cat_lap(V2U, U1);
-      cat_scale(V2U, V2U, V2_FACTOR);
-      cat_add(HU, HU, V2U);
+      s_lap(V2U, U1);
+      s_scale(V2U, V2U, V2_FACTOR);
+      s_add(HU, HU, V2U);
 
       // U+ = U- - 2iHdt/h U
-      cat_scale(HU, HU, H_FACTOR);
-      cat_add(U2, U0, HU);
-      cat_filter(U2);
+      s_scale(HU, HU, H_FACTOR);
+      s_add(U2, U0, HU);
+      s_filter(U2);
 
       tmp = U0.data;
       U0.data = U1.data;
@@ -209,20 +209,20 @@ int main(int argc, char *argv[]) {
   }
 
   // free matrices
-  cat_free_host(h);
-  cat_free_device(U0);
-  cat_free_device(U1);
-  cat_free_device(U2);
-  cat_free_device(V2U);
-  cat_free_device(VU.x);
-  cat_free_device(VU.y);
-  cat_free_device(A2);
-  cat_free_device(VA);
-  cat_free_device(A.x);
-  cat_free_device(A.y);
-  cat_free_device(O);
-  cat_free_device(H);
-  cat_free_device(HU);
+  s_free_host(h);
+  s_free_device(U0);
+  s_free_device(U1);
+  s_free_device(U2);
+  s_free_device(V2U);
+  s_free_device(VU.x);
+  s_free_device(VU.y);
+  s_free_device(A2);
+  s_free_device(VA);
+  s_free_device(A.x);
+  s_free_device(A.y);
+  s_free_device(O);
+  s_free_device(H);
+  s_free_device(HU);
   // free(frame_data);
 
   SDL_GL_DeleteContext(glctx);

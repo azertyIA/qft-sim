@@ -17,7 +17,7 @@ __device__ __host__ inline float2 cmul(float2 a, float2 b) {
   return make_float2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
 }
 
-SField cat_alloc_host(size_t rows, size_t cols) {
+SField s_alloc_host(size_t rows, size_t cols) {
   SField m;
   m.rows = rows;
   m.cols = cols;
@@ -26,7 +26,7 @@ SField cat_alloc_host(size_t rows, size_t cols) {
   return m;
 }
 
-SField cat_adapt(SField h) {
+SField s_adapt(SField h) {
   SField m;
   m.rows = h.rows;
   m.cols = h.cols;
@@ -35,11 +35,11 @@ SField cat_adapt(SField h) {
   return m;
 }
 
-void cat_free_host(SField m) { free(m.data); }
+void s_free_host(SField m) { free(m.data); }
 
-void cat_free_device(SField m) { HIP_CHECK(hipFree(m.data)); }
+void s_free_device(SField m) { HIP_CHECK(hipFree(m.data)); }
 
-void cat_preview(SField m) {
+void s_preview(SField m) {
   for (int r = 0; r < 4 && r < m.rows; ++r) {
     for (int c = 0; c < 4 && c < m.cols; ++c) {
       float2 v = CAT_AT(m, r, c);
@@ -50,19 +50,19 @@ void cat_preview(SField m) {
   printf("\n");
 }
 
-void cat_to_device(SField d, SField h) {
+void s_to_device(SField d, SField h) {
   size_t total = d.rows * d.cols;
   HIP_CHECK(
       hipMemcpy(d.data, h.data, total * sizeof(float2), hipMemcpyHostToDevice));
 }
 
-void cat_to_host(SField h, SField d) {
+void s_to_host(SField h, SField d) {
   size_t total = d.rows * d.cols;
   HIP_CHECK(
       hipMemcpy(h.data, d.data, total * sizeof(float2), hipMemcpyDeviceToHost));
 }
 
-void cat_host_fill(SField dst, CatFn f) {
+void s_host_fill(SField dst, SFieldFn f) {
   for (size_t row = 0; row < dst.rows; row++) {
     for (size_t col = 0; col < dst.cols; col++) {
       CAT_AT(dst, row, col) = f(col, row);
@@ -70,7 +70,7 @@ void cat_host_fill(SField dst, CatFn f) {
   }
 }
 
-void cat_clone(SField dst, const SField src) {
+void s_clone(SField dst, const SField src) {
   assert(dst.rows == src.rows && dst.cols == src.cols);
   HIP_CHECK(hipMemcpy(dst.data, src.data, dst.rows * dst.cols * sizeof(float2),
                       hipMemcpyDeviceToDevice));
@@ -84,14 +84,14 @@ __global__ void cat_fill_kernel(SField m, float2 c) {
   CAT_AT(m, row, col) = c;
 }
 
-void cat_fill(SField m, float2 c) {
+void s_fill(SField m, float2 c) {
   dim3 threads(32, 32);
   dim3 blocks((m.cols + threads.x - 1) / threads.x,
               (m.rows + threads.y - 1) / threads.y);
   hipLaunchKernelGGL(cat_fill_kernel, blocks, threads, 0, 0, m, c);
 }
 
-void cat_fill(SField m, float c) { cat_fill(m, make_float2(c, 0)); }
+void s_fill(SField m, float c) { s_fill(m, make_float2(c, 0)); }
 
 __global__ void cat_block_kernel(SField m, const float2 v, const int2 x,
                                  const int2 y) {
@@ -102,7 +102,7 @@ __global__ void cat_block_kernel(SField m, const float2 v, const int2 x,
   CAT_AT(m, row, col) += v;
 }
 
-void cat_block(SField m, const float2 v, const int2 x, const int2 y) {
+void s_block(SField m, const float2 v, const int2 x, const int2 y) {
   dim3 threads(32, 32);
   dim3 blocks((m.cols + threads.x - 1) / threads.x,
               (m.rows + threads.y - 1) / threads.y);
@@ -117,7 +117,7 @@ __global__ void cat_add_kernel(SField dst, SField a, SField b) {
   CAT_AT(dst, row, col) = CAT_AT(a, row, col) + CAT_AT(b, row, col);
 }
 
-void cat_add(SField dst, const SField a, const SField b) {
+void s_add(SField dst, const SField a, const SField b) {
   assert(a.rows == b.rows);
   assert(a.cols == b.cols);
   dim3 threads(32, 32);
@@ -136,7 +136,7 @@ __global__ void cat_augment_kernel(SField dst, SField a, SField b, float2 c) {
 }
 
 // a' = a + c(bxa)
-void cat_augment(SField dst, const SField a, const SField b, const float2 c) {
+void s_augment(SField dst, const SField a, const SField b, const float2 c) {
   assert(a.rows == b.rows);
   assert(a.cols == b.cols);
   assert(a.rows == dst.rows);
@@ -156,15 +156,15 @@ __global__ void cat_scale_kernel(SField dst, const SField a, float2 c) {
   CAT_AT(dst, row, col) = cmul(CAT_AT(a, row, col), c);
 }
 
-void cat_scale(SField dst, const SField a, float2 c) {
+void s_scale(SField dst, const SField a, float2 c) {
   dim3 threads(32, 32);
   dim3 blocks((a.cols + threads.x - 1) / threads.x,
               (a.rows + threads.y - 1) / threads.y);
   hipLaunchKernelGGL(cat_scale_kernel, blocks, threads, 0, 0, dst, a, c);
 }
 
-void cat_scale(SField dst, SField a, float c) {
-  cat_scale(dst, a, make_float2(c, 0));
+void s_scale(SField dst, SField a, float c) {
+  s_scale(dst, a, make_float2(c, 0));
 }
 
 __global__ void cat_mult_kernel(SField dst, const SField a, const SField b) {
@@ -176,7 +176,7 @@ __global__ void cat_mult_kernel(SField dst, const SField a, const SField b) {
   CAT_AT(dst, row, col) = cmul(CAT_AT(a, row, col), CAT_AT(b, row, col));
 }
 
-void cat_mult(SField dst, const SField a, const SField b) {
+void s_mult(SField dst, const SField a, const SField b) {
   dim3 threads(32, 32);
   dim3 blocks((a.cols + threads.x - 1) / threads.x,
               (a.rows + threads.y - 1) / threads.y);
@@ -193,7 +193,7 @@ __global__ void cat_norm_kernel(SField dst, const SField a, const float c) {
   CAT_AT(dst, row, col) = make_float2((A.x * A.x + A.y + A.y) * c, 0);
 }
 
-void cat_norm(SField dst, const SField a, float c) {
+void s_norm(SField dst, const SField a, float c) {
   dim3 threads(32, 32);
   dim3 blocks((a.cols + threads.x - 1) / threads.x,
               (a.rows + threads.y - 1) / threads.y);
@@ -236,7 +236,7 @@ __global__ void cat_lap_kernel(SField lap, const SField u) {
   CAT_AT(lap, row, col) = v;
 }
 
-void cat_lap(SField lap, const SField u) {
+void s_lap(SField lap, const SField u) {
   assert(u.rows == lap.rows);
   assert(u.cols == lap.cols);
   dim3 threads(32, 32);
@@ -258,7 +258,7 @@ __global__ void cat_filter_kernel(SField m) {
   CAT_AT(m, row, col) = ZERO;
 }
 
-void cat_filter(SField m) {
+void s_filter(SField m) {
   dim3 threads(32, 32);
   dim3 blocks((m.cols + threads.x - 1) / threads.x,
               (m.rows + threads.y - 1) / threads.y);
@@ -328,8 +328,8 @@ __global__ void cat_step_kernel(SField next, const SField t, const SField u,
       CAT_AT(t, row, col) + cmul(wave_coef, wave) + cmul(lap_coef, lap);
 }
 
-void cat_step(SField next, const SField t, const SField u, const SField v,
-              const float dt) {
+void s_step(SField next, const SField t, const SField u, const SField v,
+            const float dt) {
   assert(u.rows == next.rows);
   assert(u.cols == next.cols);
   dim3 threads(32, 32);
@@ -376,7 +376,7 @@ __global__ void cat_grad_kernel(SField X, SField Y, const SField u) {
   CAT_AT(Y, row, col) = 0.5f * (-y[trow - 1][tcol] + y[trow + 1][tcol]);
 }
 
-void cat_grad(VField dst, const SField a) {
+void s_grad(VField dst, const SField a) {
   assert(a.rows == dst.x.rows);
   assert(a.cols == dst.x.cols);
   assert(a.rows == dst.y.rows);
@@ -426,7 +426,7 @@ __global__ void cfd_div_kernel(SField div, const VField a) {
   CAT_AT(div, row, col) = 0.5f * v;
 }
 
-void cfd_div(SField dst, const VField a) {
+void f_div(SField dst, const VField a) {
   assert(dst.rows == a.x.rows);
   assert(dst.cols == a.x.cols);
   assert(dst.rows == a.y.rows);
@@ -449,7 +449,7 @@ __global__ void cfd_dot_kernel(SField dot, const VField a, const VField b) {
                           cmul(CAT_AT(a.y, row, col), CAT_AT(b.y, row, col));
 }
 
-void cfd_dot(SField dst, const VField a, const VField b) {
+void f_dot(SField dst, const VField a, const VField b) {
   assert(dst.rows == a.x.rows);
   assert(dst.cols == a.x.cols);
   assert(dst.rows == a.y.rows);
@@ -463,4 +463,61 @@ void cfd_dot(SField dst, const VField a, const VField b) {
   dim3 blocks((dst.cols + threads.x - 1) / threads.x,
               (dst.rows + threads.y - 1) / threads.y);
   hipLaunchKernelGGL(cfd_dot_kernel, blocks, threads, 0, 0, dst, a, b);
+}
+
+__global__ void f_dot_grad_kernel(SField dot, const VField a, const SField u) {
+  const size_t rows = dot.rows;
+  const size_t cols = dot.cols;
+
+  size_t row = blockIdx.y * blockDim.y + threadIdx.y;
+  size_t col = blockIdx.x * blockDim.x + threadIdx.x;
+
+  size_t trow = threadIdx.y + 1;
+  size_t tcol = threadIdx.x + 1;
+
+  __shared__ float2 x[34][34];
+  __shared__ float2 y[34][34];
+  const float2 ZERO = make_float2(0, 0);
+
+  x[trow][tcol] = row < u.rows && col < u.cols ? CAT_AT(u, row, col) : ZERO;
+  y[trow][tcol] = row < u.rows && col < u.cols ? CAT_AT(u, row, col) : ZERO;
+
+  if (trow == 1)
+    y[0][tcol] = row > 0 && tcol < u.cols ? CAT_AT(u, row - 1, col) : ZERO;
+  if (trow == 32)
+    y[33][tcol] =
+        row <= u.rows && tcol < u.cols ? CAT_AT(u, row + 1, col) : ZERO;
+  if (tcol == 1)
+    x[trow][0] = col > 0 && trow < u.rows ? CAT_AT(u, row, col - 1) : ZERO;
+  if (tcol == 32)
+    x[trow][33] =
+        col <= u.cols && trow < u.rows ? CAT_AT(u, row, col + 1) : ZERO;
+
+  __syncthreads();
+
+  if (row >= u.rows || col >= u.cols)
+    return;
+  if (row == 0 || col == 0 || row == u.rows - 1 || col == u.cols - 1) {
+    CAT_AT(dot, row, col) = ZERO;
+    return;
+  }
+
+  CAT_AT(dot, row, col) =
+      0.5f *
+      (cmul((-x[trow][tcol - 1] + x[trow][tcol + 1]), CAT_AT(a.x, row, col)) +
+       cmul((-y[trow - 1][tcol] + y[trow + 1][tcol]), CAT_AT(a.y, row, col)));
+}
+
+void f_dot_grad(SField dst, const VField a, const SField u) {
+  assert(dst.rows == a.x.rows);
+  assert(dst.cols == a.x.cols);
+  assert(dst.rows == a.y.rows);
+  assert(dst.cols == a.y.cols);
+  assert(dst.rows == u.rows);
+  assert(dst.cols == u.cols);
+
+  dim3 threads(32, 32);
+  dim3 blocks((dst.cols + threads.x - 1) / threads.x,
+              (dst.rows + threads.y - 1) / threads.y);
+  hipLaunchKernelGGL(f_dot_grad_kernel, blocks, threads, 0, 0, dst, a, u);
 }

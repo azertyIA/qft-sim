@@ -6,88 +6,88 @@
 #define DIM 5000
 
 bool test_catrix_add() {
-  SField A = cat_alloc_host(DIM, DIM);
-  SField dA = cat_adapt(A);
-  SField dB = cat_adapt(A);
-  SField dC = cat_adapt(A);
+  SField A = s_alloc_host(DIM, DIM);
+  SField dA = s_adapt(A);
+  SField dB = s_adapt(A);
+  SField dC = s_adapt(A);
 
-  cat_fill(dA, 1);
-  cat_fill(dB, 2);
+  s_fill(dA, 1);
+  s_fill(dB, 2);
 
-  cat_add(dC, dA, dB);
-  cat_to_host(A, dC);
+  s_add(dC, dA, dB);
+  s_to_host(A, dC);
 
   bool result = true;
   for (int i = 0; i < DIM; i++)
     result &= CAT_AT(A, i, i).x == 5;
 
-  cat_free_host(A);
-  cat_free_device(dA);
-  cat_free_device(dB);
-  cat_free_device(dC);
+  s_free_host(A);
+  s_free_device(dA);
+  s_free_device(dB);
+  s_free_device(dC);
   return true;
 }
 
 bool test_catrix_scale() {
-  SField A = cat_alloc_host(DIM, DIM);
-  SField dA = cat_adapt(A);
-  SField dC = cat_adapt(A);
+  SField A = s_alloc_host(DIM, DIM);
+  SField dA = s_adapt(A);
+  SField dC = s_adapt(A);
 
-  cat_fill(dA, 1);
+  s_fill(dA, 1);
 
-  cat_scale(dC, dA, 2);
-  cat_to_host(A, dC);
+  s_scale(dC, dA, 2);
+  s_to_host(A, dC);
 
   bool result = true;
   for (int i = 0; i < DIM; i++)
     result &= CAT_AT(A, i, i).x == 2;
 
-  cat_free_host(A);
-  cat_free_device(dA);
-  cat_free_device(dC);
+  s_free_host(A);
+  s_free_device(dA);
+  s_free_device(dC);
   return true;
 }
 
 bool test_catrix_lap() {
-  SField A = cat_alloc_host(DIM, DIM);
-  SField dA = cat_adapt(A);
-  SField dC = cat_adapt(A);
+  SField A = s_alloc_host(DIM, DIM);
+  SField dA = s_adapt(A);
+  SField dC = s_adapt(A);
 
   CAT_AT(A, 1, 1) = make_float2(1, 0);
 
-  cat_to_device(dA, A);
-  cat_lap(dC, dA);
-  cat_to_host(A, dC);
+  s_to_device(dA, A);
+  s_lap(dC, dA);
+  s_to_host(A, dC);
 
   bool result = CAT_AT(A, 1, 2).x == 1;
 
-  cat_free_host(A);
-  cat_free_device(dA);
-  cat_free_device(dC);
+  s_free_host(A);
+  s_free_device(dA);
+  s_free_device(dC);
   return true;
 }
 
 bool test_catrix_naive() {
-  SField A = cat_alloc_host(DIM, DIM);
-  SField dA = cat_adapt(A);
-  SField dB = cat_adapt(A);
-  SField dC = cat_adapt(A);
+  SField A = s_alloc_host(DIM, DIM);
+  SField dA = s_adapt(A);
+  SField dB = s_adapt(A);
+  SField dC = s_adapt(A);
 
   CAT_AT(A, 1, 1) = make_float2(1, 0);
   float2 idt = make_float2(0, 0.01);
 
-  cat_to_device(dA, A);
-  cat_lap(dB, dA);            // lap
-  cat_scale(dC, dB, idt / 2); // idtlap/2
-  cat_add(dB, dC, dA);
-  cat_to_host(A, dC);
+  s_to_device(dA, A);
+  s_lap(dB, dA);            // lap
+  s_scale(dC, dB, idt / 2); // idtlap/2
+  s_add(dB, dC, dA);
+  s_to_host(A, dC);
 
   bool result = CAT_AT(A, 1, 2).x == 0;
 
-  cat_free_host(A);
-  cat_free_device(dA);
-  cat_free_device(dB);
-  cat_free_device(dC);
+  s_free_host(A);
+  s_free_device(dA);
+  s_free_device(dB);
+  s_free_device(dC);
   return true;
 }
 
