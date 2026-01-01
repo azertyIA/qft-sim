@@ -21,4 +21,6 @@ void qg_free(QuantumGauge gauge);
 
 void qg_init(QuantumGauge &gauge, const QuantumGaugeParams params, SField host);
 void qg_step_second_order(QuantumGauge &gauge);
+void qg_step_so_single(QuantumGauge &gauge);
+void qg_step_decomp(QuantumGauge &gauge);
 void qg_step_wave(QuantumGauge &gauge);

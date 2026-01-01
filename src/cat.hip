@@ -225,9 +225,9 @@ __global__ void cat_lap_kernel(SField lap, const SField u) {
     CAT_AT(lap, row, col) = ZERO;
     return;
   }
-  float2 v = -4.0f * t[trow][tcol] + t[trow - 1][tcol] + t[trow + 1][tcol] +
-             t[trow][tcol + 1] + t[trow][tcol - 1];
-  CAT_AT(lap, row, col) = v;
+  CAT_AT(lap, row, col) = -4.0f * t[trow][tcol] + t[trow - 1][tcol] +
+                          t[trow + 1][tcol] + t[trow][tcol + 1] +
+                          t[trow][tcol - 1];
 }
 
 void s_lap(SField lap, const SField u) {
@@ -265,31 +265,28 @@ __global__ void cat_grad_kernel(SField X, SField Y, const SField u) {
   size_t trow = threadIdx.y + 1;
   size_t tcol = threadIdx.x + 1;
 
-  __shared__ float2 x[34][34];
-  __shared__ float2 y[34][34];
+  __shared__ float2 t[34][34];
   const float2 ZERO = make_float2(0, 0);
 
-  x[trow][tcol] = row < u.rows && col < u.cols ? CAT_AT(u, row, col) : ZERO;
-  y[trow][tcol] = row < u.rows && col < u.cols ? CAT_AT(u, row, col) : ZERO;
+  t[trow][tcol] = row < u.rows && col < u.cols ? CAT_AT(u, row, col) : ZERO;
 
   if (trow == 1)
-    y[0][tcol] = row > 0 && tcol < u.cols ? CAT_AT(u, row - 1, col) : ZERO;
-  // y[0][tcol] = make_float2(1, 0);
+    t[0][tcol] = row > 0 && tcol < u.cols ? CAT_AT(u, row - 1, col) : ZERO;
   if (trow == 32)
-    y[33][tcol] =
+    t[33][tcol] =
         row <= u.rows && tcol < u.cols ? CAT_AT(u, row + 1, col) : ZERO;
   if (tcol == 1)
-    x[trow][0] = col > 0 && trow < u.rows ? CAT_AT(u, row, col - 1) : ZERO;
+    t[trow][0] = col > 0 && trow < u.rows ? CAT_AT(u, row, col - 1) : ZERO;
   if (tcol == 32)
-    x[trow][33] =
+    t[trow][33] =
         col <= u.cols && trow < u.rows ? CAT_AT(u, row, col + 1) : ZERO;
 
   __syncthreads();
 
   if (row >= u.rows || col >= u.cols)
     return;
-  CAT_AT(X, row, col) = 0.5f * (-x[trow][tcol - 1] + x[trow][tcol + 1]);
-  CAT_AT(Y, row, col) = 0.5f * (-y[trow - 1][tcol] + y[trow + 1][tcol]);
+  CAT_AT(X, row, col) = 0.5f * (-t[trow][tcol - 1] + t[trow][tcol + 1]);
+  CAT_AT(Y, row, col) = 0.5f * (-t[trow - 1][tcol] + t[trow + 1][tcol]);
   if (row == 0 || col == 0 || row == u.rows - 1 || col == u.cols - 1) {
     CAT_AT(X, row, col) = ZERO;
     CAT_AT(Y, row, col) = ZERO;
@@ -362,7 +359,7 @@ __global__ void cfd_dot_kernel(SField dot, const VField a, const VField b) {
   size_t row = blockIdx.y * blockDim.y + threadIdx.y;
   size_t col = blockIdx.x * blockDim.x + threadIdx.x;
 
-  if (row >= dot.rows || col >= dot.cols)
+  if (row >= rows || col >= cols)
     return;
   CAT_AT(dot, row, col) = cmul(CAT_AT(a.x, row, col), CAT_AT(b.x, row, col)) +
                           cmul(CAT_AT(a.y, row, col), CAT_AT(b.y, row, col));
@@ -398,25 +395,23 @@ __global__ void f_dot_grad_kernel(SField dot, const VField a, const SField u) {
   __shared__ float2 y[34][34];
   const float2 ZERO = make_float2(0, 0);
 
-  x[trow][tcol] = row < u.rows && col < u.cols ? CAT_AT(u, row, col) : ZERO;
-  y[trow][tcol] = row < u.rows && col < u.cols ? CAT_AT(u, row, col) : ZERO;
+  x[trow][tcol] = row < rows && col < cols ? CAT_AT(u, row, col) : ZERO;
+  y[trow][tcol] = row < rows && col < cols ? CAT_AT(u, row, col) : ZERO;
 
   if (trow == 1)
-    y[0][tcol] = row > 0 && tcol < u.cols ? CAT_AT(u, row - 1, col) : ZERO;
+    y[0][tcol] = row > 0 && tcol < cols ? CAT_AT(u, row - 1, col) : ZERO;
   if (trow == 32)
-    y[33][tcol] =
-        row <= u.rows && tcol < u.cols ? CAT_AT(u, row + 1, col) : ZERO;
+    y[33][tcol] = row <= rows && tcol < cols ? CAT_AT(u, row + 1, col) : ZERO;
   if (tcol == 1)
-    x[trow][0] = col > 0 && trow < u.rows ? CAT_AT(u, row, col - 1) : ZERO;
+    x[trow][0] = col > 0 && trow < rows ? CAT_AT(u, row, col - 1) : ZERO;
   if (tcol == 32)
-    x[trow][33] =
-        col <= u.cols && trow < u.rows ? CAT_AT(u, row, col + 1) : ZERO;
+    x[trow][33] = col <= cols && trow < rows ? CAT_AT(u, row, col + 1) : ZERO;
 
   __syncthreads();
 
-  if (row >= u.rows || col >= u.cols)
+  if (row >= rows || col >= cols)
     return;
-  if (row == 0 || col == 0 || row == u.rows - 1 || col == u.cols - 1) {
+  if (row == 0 || col == 0 || row == rows - 1 || col == cols - 1) {
     CAT_AT(dot, row, col) = ZERO;
     return;
   }
@@ -437,4 +432,63 @@ void f_dot_grad(SField dst, const VField a, const SField u) {
   dim3 blocks((dst.cols + threads.x - 1) / threads.x,
               (dst.rows + threads.y - 1) / threads.y);
   hipLaunchKernelGGL(f_dot_grad_kernel, blocks, threads, 0, 0, dst, a, u);
+}
+
+__global__ void q_step_so_kernel(SField next, const SField curr,
+                                 const SField prev, const SField h,
+                                 const VField a, const float2 v2_factor,
+                                 const float2 h_factor) {
+  const size_t rows = next.rows;
+  const size_t cols = next.cols;
+
+  size_t row = blockIdx.y * blockDim.y + threadIdx.y;
+  size_t col = blockIdx.x * blockDim.x + threadIdx.x;
+
+  size_t trow = threadIdx.y + 1;
+  size_t tcol = threadIdx.x + 1;
+
+  __shared__ float2 t[34][34];
+
+  t[trow][tcol] = row < rows && col < cols ? CAT_AT(curr, row, col) : ZERO;
+
+  if (trow == 1)
+    t[0][tcol] = row > 0 && tcol < cols ? CAT_AT(curr, row - 1, col) : ZERO;
+  if (trow == 32)
+    t[33][tcol] =
+        row <= rows && tcol < cols ? CAT_AT(curr, row + 1, col) : ZERO;
+  if (tcol == 1)
+    t[trow][0] = col > 0 && trow < rows ? CAT_AT(curr, row, col - 1) : ZERO;
+  if (tcol == 32)
+    t[trow][33] =
+        col <= cols && trow < rows ? CAT_AT(curr, row, col + 1) : ZERO;
+
+  __syncthreads();
+
+  if (row >= rows || col >= cols)
+    return;
+  if (row == 0 || col == 0 || row == rows - 1 || col == cols - 1) {
+    CAT_AT(next, row, col) = ZERO;
+    return;
+  }
+
+  float2 lap = cmul(v2_factor, -4.0f * t[trow][tcol] + t[trow - 1][tcol] +
+                                   t[trow + 1][tcol] + t[trow][tcol + 1] +
+                                   t[trow][tcol - 1]);
+  float2 dot_grad =
+      0.5f *
+      (cmul((-t[trow][tcol - 1] + t[trow][tcol + 1]), CAT_AT(a.x, row, col)) +
+       cmul((-t[trow - 1][tcol] + t[trow + 1][tcol]), CAT_AT(a.y, row, col)));
+  float2 mult = cmul(CAT_AT(curr, row, col), CAT_AT(h, row, col));
+
+  CAT_AT(next, row, col) =
+      CAT_AT(prev, row, col) + cmul(h_factor, lap + dot_grad + mult);
+}
+
+void q_step_so(SField next, const SField curr, const SField prev,
+               const SField h, const VField a, const float2 v2_factor,
+               const float2 h_factor) {
+  dim3 blocks((next.cols + threads.x - 1) / threads.x,
+              (next.rows + threads.y - 1) / threads.y);
+  hipLaunchKernelGGL(q_step_so_kernel, blocks, threads, 0, 0, next, curr, prev,
+                     h, a, v2_factor, h_factor);
 }

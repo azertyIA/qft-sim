@@ -51,4 +51,8 @@ void f_div(SField dst, const VField a);
 void f_dot(SField dst, const VField a, const VField b);
 void f_dot_grad(SField dst, const VField a, const SField u);
 
+void q_step_so(SField next, const SField curr, const SField prev,
+               const SField h, const VField a, const float2 v2u_factor,
+               const float2 h_factor);
+
 #endif // !CAT_DEFINITION

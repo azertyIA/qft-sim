@@ -1,4 +1,5 @@
 #include "quantum.h"
+#include <cstdio>
 
 QuantumGauge qg_alloc(SField host) {
   QuantumGauge gauge;
@@ -58,7 +59,6 @@ void qg_init(QuantumGauge &gauge, const QuantumGaugeParams params,
       make_float2(-0.5f * params.h_bar * params.h_bar / params.m, 0);
   gauge.H_FACTOR = make_float2(0, -2 * params.delta_time / params.h_bar);
 
-  // SField h = s_alloc_host(gauge.curr.rows, gauge.curr.cols);
   s_host_fill(host, params.ax);
   s_to_device(gauge.A.x, host);
   s_host_fill(host, params.ay);
@@ -100,6 +100,38 @@ void qg_step_second_order(QuantumGauge &gauge) {
   // HU += -h2V2U/2m
   s_lap(gauge.V2U, gauge.curr);
   s_scale_add(gauge.HU, gauge.HU, gauge.V2U, gauge.V2_FACTOR);
+
+  // U+ = U- - 2iHdt/h U
+  s_scale_add(gauge.next, gauge.prev, gauge.HU, gauge.H_FACTOR);
+
+  gauge.tmp = gauge.prev.data;
+  gauge.prev.data = gauge.curr.data;
+  gauge.curr.data = gauge.next.data;
+  gauge.next.data = gauge.tmp;
+}
+
+void qg_step_so_single(QuantumGauge &gauge) {
+  q_step_so(gauge.next, gauge.curr, gauge.prev, gauge.H, gauge.A,
+            gauge.V2_FACTOR, gauge.H_FACTOR);
+
+  gauge.tmp = gauge.prev.data;
+  gauge.prev.data = gauge.curr.data;
+  gauge.curr.data = gauge.next.data;
+  gauge.next.data = gauge.tmp;
+}
+
+void qg_step_decomp(QuantumGauge &gauge) {
+  // HU += [(ihV.(qA) + (qA)2)/2m + O]U
+  s_mult(gauge.VA, gauge.H, gauge.curr);
+
+  // HU += (-ihqA/m).VU
+  f_dot_grad(gauge.AVU, gauge.A, gauge.curr);
+  s_add(gauge.HU, gauge.VA, gauge.AVU);
+
+  // HU += -h2V2U/2m
+  s_lap(gauge.V2U, gauge.curr);
+  s_scale(gauge.V2U, gauge.V2U, gauge.V2_FACTOR);
+  s_add(gauge.HU, gauge.HU, gauge.V2U);
 
   // U+ = U- - 2iHdt/h U
   s_scale_add(gauge.next, gauge.prev, gauge.HU, gauge.H_FACTOR);

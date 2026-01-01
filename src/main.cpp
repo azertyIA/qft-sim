@@ -11,8 +11,8 @@
 const float H_BAR = 0.05f;
 const float Q = -0.1f;
 const float M = 1.f;
-const float B = 0.05f;
-const float E = 0.005f;
+const float B = 0.00006f;
+const float E = -0.0005f;
 
 void init_window(SField H, SDL_Window *window, SDL_GLContext *glctx,
                  GLuint *tex);
@@ -26,25 +26,27 @@ typedef struct {
 } FrameData;
 
 float2 init_o(float x, float y) {
-  // float r = ((x > 60 && x < 68) ? 0.5f : 0);
-  // return make_float2(r, 0);
-  float r = 0.5f * E * (y);
-  float i = 0;
+  // float r = x < 60 ? E : x < 68 ? E / 2 : 0;
+  // float r = 0.5f * E * (128 - x);
+  float r = 0.005f * E * (x - 100) * (x - 100);
+  // float r = 0;
+  // float i = (x > 150 || x < 50 || y > 150 || y < 50) ? 0.0001f : 0;
+  float i = -0.00001;
   return make_float2(r, i);
 }
 
 float2 init_ax(float x, float y) {
-  // float r = -0.5f * B * (64 - y);
-  // float i = 0;
-  // return make_float2(r, i);
-  return make_float2(0, 0);
+  // float r = 0;
+  float r = -0.5f * B * (y - 64);
+  float i = 0;
+  return make_float2(r, i);
 }
 
 float2 init_ay(float x, float y) {
-  // float r = 0.5f * B * (64 - x);
-  // float i = 0;
-  // return make_float2(r, i);
-  return make_float2(0, 0);
+  // float r = 0;
+  float r = 0.5f * B * (x - 64);
+  float i = 0;
+  return make_float2(r, i);
 }
 
 void init_window(SField H, SDL_Window *&window, SDL_GLContext &glctx,
@@ -94,7 +96,8 @@ int main(int argc, char *argv[]) {
     frame_data->h = h;
     write_frame(frame_data);
     for (int i = 0; i < MAX_STEP; i++)
-      qg_step_second_order(gauge);
+      qg_step_so_single(gauge);
+    // qg_step_second_order(gauge);
 
     while (SDL_PollEvent(&e)) {
       if (e.type == SDL_QUIT)
@@ -144,11 +147,10 @@ void cat_rgb(unsigned char *img, const SField u, const float scale) {
   for (size_t row = 0; row < u.rows; row++) {
 #pragma omp parallel for
     for (size_t col = 0; col < u.cols; col++) {
-      float2 v = CAT_AT(u, row, col);
-      const float hue = atan2f(v.y, v.x) / M_PI / 2 + 0.5f;
+      float2 v = CAT_AT(u, row, col) * scale;
+      const float hue = atan2f(v.y, v.x) / M_PI / 2 + 0.50001f;
       // const float mag = fminf(sqrtf(v.x * v.x + v.y * v.y) * scale, 1);
-      const float mag =
-          fmax(0, fminf(sqrtf(v.x * v.x + v.y * v.y) * scale, 1) - 0.05f);
+      const float mag = fminf(sqrtf(v.x * v.x + v.y * v.y), 1);
 
       const float h = hue * 6.0f;
       const float f = h - floorf(h);
@@ -171,6 +173,9 @@ void cat_rgb(unsigned char *img, const SField u, const float scale) {
         break;
       case 5:
         rgb = make_float3(1, 0, 1 - f);
+        break;
+      case 6:
+        rgb = make_float3(1, f, 0);
         break;
       }
       int idx = (row * u.cols + col) * 3;
