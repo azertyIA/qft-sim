@@ -1,8 +1,7 @@
 #include <hip/hip_runtime.h>
 #include <stddef.h>
 
-#ifndef CAT_DEFINITION
-#define CAT_DEFINITION
+#pragma once
 
 typedef struct {
   size_t rows, cols, stride;
@@ -36,6 +35,7 @@ void s_fill(SField m, float c);
 void s_scale(SField dst, const SField a, float2 c);
 void s_scale(SField dst, const SField a, float c);
 void s_mult(SField dst, const SField a, const SField b);
+void s_exp(SField dst, const SField a);
 
 void s_norm(SField dst, const SField a, const float c);
 void s_block(SField dst, const float2 v, const int2 x, const int2 y);
@@ -47,12 +47,13 @@ void s_lap(SField dst, const SField u);
 void s_filter(SField m);
 
 void s_grad(VField dst, const SField a);
-void f_div(SField dst, const VField a);
-void f_dot(SField dst, const VField a, const VField b);
-void f_dot_grad(SField dst, const VField a, const SField u);
+void v_div(SField dst, const VField a);
+void v_dot(SField dst, const VField a, const VField b);
+void v_dot_grad(SField dst, const VField a, const SField u);
 
 void q_step_so(SField next, const SField curr, const SField prev,
                const SField h, const VField a, const float2 v2u_factor,
                const float2 h_factor);
-
-#endif // !CAT_DEFINITION
+void cg_step_so(const SField curr, const SField prev, const VField Tr,
+                const VField Td, const SField O, const float d2_factor,
+                const float h_factor);

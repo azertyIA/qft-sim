@@ -7,7 +7,7 @@
 #include <cstdlib>
 #include <string>
 
-// #define COLOR
+#define COLOR
 // #define PNCOLOR
 
 // physical constants
@@ -15,7 +15,7 @@ const float H_BAR = 0.05f;
 const float Q = -0.1f;
 const float M = 1.f;
 const float B = -0.06f;
-const float E = -0.0000005f;
+const float E = -0.0005f;
 
 const int FRAME_ROWS = 2;
 const int FRAME_COLS = 3;
@@ -34,7 +34,7 @@ void cat_pulse(SField A, const float mx, const float my, const float2 k);
 
 float2 init_o(float x, float y) {
   // float r = x < 60 ? E : x < 68 ? E / 2 : 0;
-  float r = 0.5f * E * (128 - x);
+  float r = 0.5f * E * x;
   // float r = 0;
   // float i = 0.0001f;
   float i = 0;
@@ -115,20 +115,22 @@ int main(int argc, char *argv[]) {
   unsigned char img[h.rows * h.cols * 3 * FRAME_ROWS * FRAME_COLS];
 
   QuantumGaugeParams qgp = {H_BAR, M, Q, DELTA_TIME, init_ax, init_ay, init_o};
-  QuantumGauge gauge = qg_alloc(h);
-  qg_init(gauge, qgp, h);
+  // QuantumGauge gauge = qg_alloc(h);
+  CovariantGauge gauge = cg_alloc(h);
+  cg_init(gauge, qgp, h);
 
   while (running) {
-    qg_dump(h, gauge);
-    s_to_host(h0, gauge.AVU);
-    s_to_host(h1, gauge.VA);
+    cg_dump(h, gauge);
+    s_to_host(h0, gauge.Tr.x);
+    s_to_host(h1, gauge.Tr.y);
     s_to_host(h2, gauge.H);
-    s_to_host(h3, gauge.V2U);
+    s_to_host(h3, gauge.Td.x);
     s_to_host(h4, gauge.A.x);
 
     write_frame(frame_data, img);
     for (int i = 0; i < MAX_STEP; i++)
-      qg_step_decomp(gauge);
+      cg_step_second_order(gauge);
+    // qg_step_decomp(gauge);
 
     while (SDL_PollEvent(&e)) {
       if (e.type == SDL_QUIT)
@@ -141,15 +143,15 @@ int main(int argc, char *argv[]) {
 
       if (x0 == -1 || x0 == x1 || y0 == y1)
         continue;
-      qg_dump(h, gauge);
+      cg_dump(h, gauge);
       on_click(h, x0, y0, x1, y1);
-      qg_load(gauge, h);
+      cg_load(gauge, h);
     }
   }
 
   // free matrices
   s_free_host(h);
-  qg_free(gauge);
+  cg_free(gauge);
 
   SDL_GL_DeleteContext(glctx);
   SDL_DestroyWindow(window);

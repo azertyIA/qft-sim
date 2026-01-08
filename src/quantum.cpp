@@ -1,4 +1,5 @@
 #include "quantum.h"
+#include "cat.h"
 #include <cstdio>
 
 QuantumGauge qg_alloc(SField host) {
@@ -74,10 +75,10 @@ void qg_init(QuantumGauge &gauge, const QuantumGaugeParams params,
   s_fill(gauge.curr, 0);
   s_fill(gauge.next, 0);
 
-  f_dot(gauge.A2, gauge.A, gauge.A);
+  v_dot(gauge.A2, gauge.A, gauge.A);
   s_scale(gauge.A2, gauge.A2, 0.5f / params.m);
 
-  f_div(gauge.VA, gauge.A);
+  v_div(gauge.VA, gauge.A);
   s_scale(gauge.VA, gauge.VA, make_float2(0, 0.5f * params.h_bar / params.m));
 
   // precompute H = [(ihV.(qA) + (qA)2)/2m + O]
@@ -94,7 +95,7 @@ void qg_step_second_order(QuantumGauge &gauge) {
   s_mult(gauge.HU, gauge.H, gauge.curr);
 
   // HU += (-ihqA/m).VU
-  f_dot_grad(gauge.AVU, gauge.A, gauge.curr);
+  v_dot_grad(gauge.AVU, gauge.A, gauge.curr);
   s_add(gauge.HU, gauge.HU, gauge.AVU);
 
   // HU += -h2V2U/2m
@@ -125,7 +126,7 @@ void qg_step_decomp(QuantumGauge &gauge) {
   s_mult(gauge.VA, gauge.H, gauge.curr);
 
   // HU += (-ihqA/m).VU
-  f_dot_grad(gauge.AVU, gauge.A, gauge.curr);
+  v_dot_grad(gauge.AVU, gauge.A, gauge.curr);
   s_add(gauge.HU, gauge.VA, gauge.AVU);
 
   // HU += -h2V2U/2m
@@ -153,4 +154,112 @@ void qg_step_wave(QuantumGauge &gauge) {
   gauge.prev.data = gauge.curr.data;
   gauge.curr.data = gauge.next.data;
   gauge.next.data = gauge.tmp;
+}
+
+CovariantGauge cg_alloc(SField host) {
+  CovariantGauge gauge;
+
+  // potential fields
+  gauge.A = {s_adapt(host), s_adapt(host)};
+  gauge.O = s_adapt(host);
+
+  // wave field buffers
+  gauge.prev = s_adapt(host);
+  gauge.curr = s_adapt(host);
+  gauge.next = s_adapt(host);
+
+  // transport links (static)
+  gauge.Td = {s_adapt(host), s_adapt(host)};
+  gauge.Tr = {s_adapt(host), s_adapt(host)};
+
+  // transport products (dynamic)
+  gauge.TdU = {s_adapt(host), s_adapt(host)};
+  gauge.TrU = {s_adapt(host), s_adapt(host)};
+
+  // intermiedaries
+  gauge.H = s_adapt(host);
+  return gauge;
+}
+
+void cg_dump(SField dump, CovariantGauge gauge) { s_to_host(dump, gauge.curr); }
+void cg_load(CovariantGauge gauge, SField host) {
+  s_to_device(gauge.curr, host);
+  s_to_device(gauge.prev, host);
+};
+
+void cg_free(CovariantGauge gauge) {
+  s_free_device(gauge.A.x);
+  s_free_device(gauge.A.y);
+  s_free_device(gauge.O);
+
+  // wave field buffers
+  s_free_device(gauge.prev);
+  s_free_device(gauge.curr);
+  s_free_device(gauge.next);
+
+  // transport links (static)
+  s_free_device(gauge.Tr.x);
+  s_free_device(gauge.Tr.y);
+  s_free_device(gauge.Td.x);
+  s_free_device(gauge.Td.y);
+
+  // transport products (dynamic)
+  s_free_device(gauge.TrU.x);
+  s_free_device(gauge.TrU.y);
+  s_free_device(gauge.TdU.x);
+  s_free_device(gauge.TdU.y);
+
+  // intermiedaries
+  s_free_device(gauge.H);
+}
+
+void cg_init(CovariantGauge &gauge, const QuantumGaugeParams params,
+             SField host) {
+  // H = -h2/2m[TrU.x + TrU.y + TdU.x + TdU.y - 4U] + OU
+  // = -h2/2m[TrU.x + TrU.y + TdU.x + TdU.y] + (O + 2h2/m)U
+  gauge.D2_FACTOR = -0.5f * params.h_bar * params.h_bar / params.m;
+  gauge.H_FACTOR = -2 * params.delta_time / params.h_bar;
+
+  s_host_fill(host, params.ax);
+  s_to_device(gauge.A.x, host);
+  s_host_fill(host, params.ay);
+  s_to_device(gauge.A.y, host);
+  s_host_fill(host, params.o);
+  s_to_device(gauge.O, host);
+
+  float2 tr = make_float2(0, -params.q / params.h_bar);
+  float2 td = make_float2(0, params.q / params.h_bar);
+
+  s_scale(gauge.Tr.x, gauge.A.x, tr);
+  s_scale(gauge.Tr.y, gauge.A.y, tr);
+  s_scale(gauge.Td.x, gauge.A.x, td);
+  s_scale(gauge.Td.y, gauge.A.y, td);
+
+  s_exp(gauge.Tr.x, gauge.Tr.x);
+  s_exp(gauge.Tr.y, gauge.Tr.y);
+  s_exp(gauge.Td.x, gauge.Td.x);
+  s_exp(gauge.Td.y, gauge.Td.y);
+
+  s_scale(gauge.Tr.x, gauge.Tr.x, gauge.D2_FACTOR);
+  s_scale(gauge.Tr.y, gauge.Tr.y, gauge.D2_FACTOR);
+  s_scale(gauge.Td.x, gauge.Td.x, gauge.D2_FACTOR);
+  s_scale(gauge.Td.y, gauge.Td.y, gauge.D2_FACTOR);
+
+  // compute +2h2/m factor with O_eff
+  s_scale(gauge.O, gauge.O, params.q);
+  s_fill(gauge.H, 2 * params.h_bar / params.m);
+  s_add(gauge.O, gauge.O, gauge.H);
+
+  s_fill(gauge.prev, 0);
+  s_fill(gauge.curr, 0);
+  s_fill(gauge.next, 0);
+}
+
+void cg_step_second_order(CovariantGauge &gauge) {
+  cg_step_so(gauge.curr, gauge.prev, gauge.Tr, gauge.Td, gauge.O,
+             gauge.D2_FACTOR, gauge.H_FACTOR);
+
+  gauge.tmp = gauge.prev.data;
+  gauge.prev.data = gauge.curr.data;
+  gauge.curr.data = gauge.tmp;
 }

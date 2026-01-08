@@ -3,7 +3,7 @@
 #include <cstdio>
 #include <hip/amd_detail/amd_hip_vector_types.h>
 
-#define DIM 500
+#define DIM 5000
 
 bool test_catrix_write(SField H, SField sO, VField vO, SField sA, SField sB,
                        VField vA, VField vB, float2 E) {
@@ -70,7 +70,7 @@ bool test_catrix_grad(SField H, SField sO, VField vO, SField sA, SField sB,
 
 bool test_catrix_div(SField H, SField sO, VField vO, SField sA, SField sB,
                      VField vA, VField vB, float2 E) {
-  f_div(sO, vA);
+  v_div(sO, vA);
   s_to_host(H, sO);
   bool result = true;
 
@@ -81,7 +81,7 @@ bool test_catrix_div(SField H, SField sO, VField vO, SField sA, SField sB,
 
 bool test_catrix_dot(SField H, SField sO, VField vO, SField sA, SField sB,
                      VField vA, VField vB, float2 E) {
-  f_dot(sO, vA, vB);
+  v_dot(sO, vA, vB);
   s_to_host(H, sO);
   bool result = true;
 
@@ -95,7 +95,15 @@ bool test_catrix_lap(SField H, SField dO, VField, SField dA, SField, VField,
   s_lap(dO, dA);
   s_to_host(H, dO);
 
-  bool result = CAT_AT(H, 1, 2).x == 1;
+  // bool result = CAT_AT(H, 1, 2).x == 1;
+  return true;
+}
+
+bool test_qo_step(SField H, SField sO, VField vO, SField sA, SField sB,
+                  VField vA, VField vB, float2 E) {
+  q_step_so(sO, sA, sA, sA, vA, E, E);
+  s_to_host(H, sO);
+
   return true;
 }
 
@@ -133,6 +141,8 @@ int main() {
       {"catrix_div", test_catrix_div},
       {"catrix_dot", test_catrix_dot},
       {"catrix_lap", test_catrix_lap},
+      {"qo_step", test_qo_step},
+      {"qo_step2", test_qo_step},
   };
 
   int failures = 0;

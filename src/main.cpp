@@ -8,11 +8,11 @@
 #define COLOR
 
 // physical constants
-const float H_BAR = 0.05f;
-const float Q = -0.1f;
-const float M = 1.f;
-const float B = 0.00006f;
-const float E = -0.0005f;
+const float H_BAR = 0.08f;
+const float Q = -0.01f;
+const float M = 2.f;
+const float B = -0.8f;
+const float E = -0.005f;
 
 void init_window(SField H, SDL_Window *window, SDL_GLContext *glctx,
                  GLuint *tex);
@@ -27,24 +27,24 @@ typedef struct {
 
 float2 init_o(float x, float y) {
   // float r = x < 60 ? E : x < 68 ? E / 2 : 0;
-  // float r = 0.5f * E * (128 - x);
-  float r = 0.005f * E * (x - 100) * (x - 100);
+  float r = 0.5f * E * (x - y);
+  // float r = 0.005f * E * (x - 100) * (x - 100);
   // float r = 0;
   // float i = (x > 150 || x < 50 || y > 150 || y < 50) ? 0.0001f : 0;
-  float i = -0.00001;
+  float i = -0.00000;
   return make_float2(r, i);
 }
 
 float2 init_ax(float x, float y) {
   // float r = 0;
-  float r = -0.5f * B * (y - 64);
+  float r = -0.5f * B * y;
   float i = 0;
   return make_float2(r, i);
 }
 
 float2 init_ay(float x, float y) {
   // float r = 0;
-  float r = 0.5f * B * (x - 64);
+  float r = 0.5f * B * x;
   float i = 0;
   return make_float2(r, i);
 }
@@ -88,16 +88,31 @@ int main(int argc, char *argv[]) {
   frame_data->window = window;
 
   QuantumGaugeParams qgp = {H_BAR, M, Q, DELTA_TIME, init_ax, init_ay, init_o};
-  QuantumGauge gauge = qg_alloc(h);
-  qg_init(gauge, qgp, h);
+  // QuantumGauge gauge = qg_alloc(h);
+  // qg_init(gauge, qgp, h);
+  CovariantGauge gauge = cg_alloc(h);
+  cg_init(gauge, qgp, h);
+
+  hipEvent_t start, stop;
+  (void)hipEventCreate(&start);
+  (void)hipEventCreate(&stop);
 
   while (running) {
-    qg_dump(h, gauge);
+    cg_dump(h, gauge);
     frame_data->h = h;
     write_frame(frame_data);
+
+    (void)hipEventRecord(start, 0);
+
     for (int i = 0; i < MAX_STEP; i++)
-      qg_step_so_single(gauge);
-    // qg_step_second_order(gauge);
+      // qg_step_so_single(gauge);
+      cg_step_second_order(gauge);
+
+    (void)hipEventRecord(stop, 0);
+    (void)hipEventSynchronize(stop);
+    float ms = 0;
+    (void)hipEventElapsedTime(&ms, start, stop);
+    printf("%.2f ms\n", ms);
 
     while (SDL_PollEvent(&e)) {
       if (e.type == SDL_QUIT)
@@ -110,15 +125,15 @@ int main(int argc, char *argv[]) {
 
       if (x0 == -1 || x0 == x1 || y0 == y1)
         continue;
-      qg_dump(h, gauge);
+      cg_dump(h, gauge);
       on_click(h, x0, y0, x1, y1);
-      qg_load(gauge, h);
+      cg_load(gauge, h);
     }
   }
 
   // free matrices
   s_free_host(h);
-  qg_free(gauge);
+  cg_free(gauge);
 
   SDL_GL_DeleteContext(glctx);
   SDL_DestroyWindow(window);
